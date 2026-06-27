@@ -1,0 +1,218 @@
+package presentation;
+
+import controller.FileExplorerController;
+
+import javax.swing.JFileChooser;
+import javax.swing.JDialog;
+import javax.swing.JMenuItem;
+import javax.swing.JOptionPane;
+import javax.swing.JPopupMenu;
+import javax.swing.JScrollPane;
+import javax.swing.JTextArea;
+import javax.swing.SwingWorker;
+import java.awt.BorderLayout;
+import java.awt.Dimension;
+import java.io.File;
+import java.util.function.Supplier;
+
+public class FileContextMenu extends JPopupMenu {
+    private final FileExplorerController controller;
+    private final Supplier<File> selectedFileSupplier;
+    private final Runnable refreshAction;
+
+    public FileContextMenu(
+            FileExplorerController controller,
+            Supplier<File> selectedFileSupplier,
+            Runnable refreshAction
+    ) {
+        this.controller = controller;
+        this.selectedFileSupplier = selectedFileSupplier;
+        this.refreshAction = refreshAction;
+
+        initMenuItems();
+    }
+
+    private void initMenuItems() {
+        JMenuItem copyItem = new JMenuItem("Copy");
+        JMenuItem moveItem = new JMenuItem("Move");
+        JMenuItem renameItem = new JMenuItem("Rename");
+        JMenuItem propertiesItem = new JMenuItem("Properties");
+
+        copyItem.addActionListener(event -> copySelectedFile());
+        moveItem.addActionListener(event -> moveSelectedFile());
+        renameItem.addActionListener(event -> renameSelectedFile());
+        propertiesItem.addActionListener(event -> showSelectedFileProperties());
+
+        add(copyItem);
+        add(moveItem);
+        add(renameItem);
+        addSeparator();
+        add(propertiesItem);
+    }
+
+    private File getSelectedFile() {
+        return selectedFileSupplier.get();
+    }
+
+    private void copySelectedFile() {
+        File selectedFile = getSelectedFile();
+
+        if (selectedFile == null) {
+            showMessage("Please select a file or folder.");
+            return;
+        }
+
+        File destinationFolder = chooseDestinationFolder();
+
+        if (destinationFolder == null) {
+            return;
+        }
+
+        try {
+            controller.copy(selectedFile, destinationFolder);
+            showMessage("Copied successfully.");
+            refreshAction.run();
+        } catch (Exception exception) {
+            showError(exception.getMessage());
+        }
+    }
+
+    private void moveSelectedFile() {
+        File selectedFile = getSelectedFile();
+
+        if (selectedFile == null) {
+            showMessage("Please select a file or folder.");
+            return;
+        }
+
+        File destinationFolder = chooseDestinationFolder();
+
+        if (destinationFolder == null) {
+            return;
+        }
+
+        try {
+            controller.move(selectedFile, destinationFolder);
+            showMessage("Moved successfully.");
+            refreshAction.run();
+        } catch (Exception exception) {
+            showError(exception.getMessage());
+        }
+    }
+
+    private void renameSelectedFile() {
+        File selectedFile = getSelectedFile();
+
+        if (selectedFile == null) {
+            showMessage("Please select a file or folder.");
+            return;
+        }
+
+        String newName = JOptionPane.showInputDialog(
+                this,
+                "Enter new name:",
+                selectedFile.getName()
+        );
+
+        if (newName == null || newName.trim().isEmpty()) {
+            return;
+        }
+
+        try {
+            boolean success = controller.rename(selectedFile, newName.trim());
+
+            if (success) {
+                showMessage("Renamed successfully.");
+                refreshAction.run();
+            } else {
+                showError("Cannot rename this file or folder.");
+            }
+        } catch (Exception exception) {
+            showError(exception.getMessage());
+        }
+    }
+
+    private void showSelectedFileProperties() {
+        File selectedFile = getSelectedFile();
+
+        if (selectedFile == null) {
+            showMessage("Please select a file or folder.");
+            return;
+        }
+
+        JTextArea textArea = new JTextArea();
+        textArea.setEditable(false);
+        textArea.setLineWrap(true);
+        textArea.setWrapStyleWord(true);
+
+        try {
+            textArea.setText(controller.getQuickProperties(selectedFile));
+        } catch (Exception exception) {
+            showError(exception.getMessage());
+            return;
+        }
+
+        JDialog dialog = new JDialog();
+        dialog.setTitle(selectedFile.getName() + " Properties");
+        dialog.setModal(false);
+        dialog.setLayout(new BorderLayout());
+        dialog.add(new JScrollPane(textArea), BorderLayout.CENTER);
+        dialog.setSize(new Dimension(520, 320));
+        dialog.setLocationRelativeTo(this);
+        dialog.setVisible(true);
+
+        if (!selectedFile.isDirectory()) {
+            return;
+        }
+
+        SwingWorker<String, Void> worker = new SwingWorker<>() {
+            @Override
+            protected String doInBackground() throws Exception {
+                return controller.getProperties(selectedFile);
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    textArea.setText(get());
+                } catch (Exception exception) {
+                    textArea.setText("Cannot calculate folder properties.\n" + exception.getMessage());
+                }
+            }
+        };
+
+        worker.execute();
+    }
+
+    private File chooseDestinationFolder() {
+        JFileChooser fileChooser = new JFileChooser();
+        fileChooser.setDialogTitle("Choose destination folder");
+        fileChooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+
+        int result = fileChooser.showOpenDialog(this);
+
+        if (result == JFileChooser.APPROVE_OPTION) {
+            return fileChooser.getSelectedFile();
+        }
+
+        return null;
+    }
+
+    private void showMessage(String message) {
+        JOptionPane.showMessageDialog(
+                this,
+                message,
+                "Message",
+                JOptionPane.INFORMATION_MESSAGE
+        );
+    }
+
+    private void showError(String message) {
+        JOptionPane.showMessageDialog(
+                this,
+                message,
+                "Error",
+                JOptionPane.ERROR_MESSAGE
+        );
+    }
+}
