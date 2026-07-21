@@ -12,13 +12,12 @@ import java.awt.BorderLayout;
 import java.awt.Rectangle;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.io.File;
 
 public class FileListPanel extends JPanel {
     private final FileExplorerController controller;
     private final DefaultListModel<FileItem> listModel;
     private final JList<FileItem> fileList;
-    private File currentFolder;
+    private FileItem currentFolder;
 
     public FileListPanel(FileExplorerController controller) {
         this.controller = controller;
@@ -32,14 +31,12 @@ public class FileListPanel extends JPanel {
         add(new JScrollPane(fileList), BorderLayout.CENTER);
     }
 
-    public void displayFiles(File folder) {
+    public void displayFiles(FileItem folder) {
         currentFolder = folder;
         listModel.clear();
 
-        File[] children = controller.getChildren(folder);
-
-        for (File child : children) {
-            listModel.addElement(new FileItem(child));
+        for (FileItem child : controller.getChildren(folder)) {
+            listModel.addElement(child);
         }
     }
 
@@ -58,7 +55,7 @@ public class FileListPanel extends JPanel {
     public void installContextMenu(Runnable refreshAction) {
         FileContextMenu contextMenu = new FileContextMenu(
                 controller,
-                this::getSelectedFile,
+                this::getSelectedItem,
                 refreshAction
         );
 
@@ -100,13 +97,7 @@ public class FileListPanel extends JPanel {
         return fileList;
     }
 
-    public File getSelectedFile() {
-        FileItem selectedItem = fileList.getSelectedValue();
-
-        if (selectedItem == null) {
-            return null;
-        }
-
-        return selectedItem.getFile();
+    public FileItem getSelectedItem() {
+        return fileList.getSelectedValue();
     }
 }

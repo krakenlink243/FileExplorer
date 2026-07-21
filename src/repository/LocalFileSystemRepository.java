@@ -1,5 +1,6 @@
 package repository;
 
+import model.FileItem;
 import model.ItemTimes;
 import platform.RootProvider;
 
@@ -13,7 +14,8 @@ import java.util.Comparator;
 
 /**
  * Reads and writes the local disk. This is the only class in the program that
- * is allowed to use java.nio.file.
+ * is allowed to use java.io.File and java.nio.file: toFile and toItem are the
+ * border where those types are created and discarded.
  */
 public class LocalFileSystemRepository implements FileSystemRepository {
 
@@ -23,50 +25,98 @@ public class LocalFileSystemRepository implements FileSystemRepository {
         this.rootProvider = rootProvider;
     }
 
-    @Override
-    public File[] getRoots() {
-        return rootProvider.getRoots();
+    private File toFile(FileItem item) {
+        return new File(item.getPath());
+    }
+
+    private FileItem toItem(File file) {
+        String name = file.getName();
+
+        // A drive root such as C:\ has an empty name, so fall back to the path.
+        if (name.isEmpty()) {
+            name = file.getAbsolutePath();
+        }
+
+        return new FileItem(file.getAbsolutePath(), name, file.isDirectory());
+    }
+
+    private FileItem[] toItems(File[] files) {
+        FileItem[] items = new FileItem[files.length];
+
+        for (int index = 0; index < files.length; index++) {
+            items[index] = toItem(files[index]);
+        }
+
+        return items;
     }
 
     @Override
-    public File[] getChildren(File folder) {
-        if (folder == null || !folder.exists() || !folder.isDirectory()) {
-            return new File[0];
+    public FileItem[] getRoots() {
+        return toItems(rootProvider.getRoots());
+    }
+
+    @Override
+    public FileItem[] getChildren(FileItem folder) {
+        if (folder == null) {
+            return new FileItem[0];
         }
 
-        File[] children = folder.listFiles();
+        File file = toFile(folder);
+
+        if (!file.exists() || !file.isDirectory()) {
+            return new FileItem[0];
+        }
+
+        File[] children = file.listFiles();
 
         if (children == null) {
-            return new File[0];
+            return new FileItem[0];
         }
 
         Arrays.sort(children, Comparator
-                .comparing((File file) -> !file.isDirectory())
+                .comparing((File child) -> !child.isDirectory())
                 .thenComparing(File::getName, String.CASE_INSENSITIVE_ORDER));
 
-        return children;
+        return toItems(children);
     }
 
     @Override
-    public boolean exists(File file) {
-        return file != null && file.exists();
+    public FileItem itemAt(String path) {
+        return toItem(new File(path));
     }
 
     @Override
-    public boolean isDirectory(File file) {
-        return file != null && file.isDirectory();
+    public FileItem resolveChild(FileItem parent, String name) {
+        return toItem(new File(toFile(parent), name));
     }
 
     @Override
-    public long getSize(File file) {
-        return file == null ? 0 : file.length();
+    public FileItem resolveSibling(FileItem item, String name) {
+        return toItem(new File(toFile(item).getParentFile(), name));
     }
 
     @Override
-    public ItemTimes readTimes(File file) {
+    public FileItem getParent(FileItem item) {
+        File parent = toFile(item).getParentFile();
+
+        return parent == null ? null : toItem(parent);
+    }
+
+    @Override
+    public boolean exists(FileItem item) {
+        return item != null && toFile(item).exists();
+    }
+
+    @Override
+    public long getSize(FileItem item) {
+        return item == null ? 0 : toFile(item).length();
+    }
+
+    @Override
+    public ItemTimes readTimes(FileItem item) {
         try {
-            BasicFileAttributes attributes =
-                    Files.readAttributes(file.toPath(), BasicFileAttributes.class);
+            BasicFileAttributes attributes = Files.readAttributes(
+                    toFile(item).toPath(), BasicFileAttributes.class);
 
             return new ItemTimes(
                     attributes.creationTime().toMillis(),
@@ -78,37 +128,39 @@ public class LocalFileSystemRepository implements FileSystemRepository {
     }
 
     @Override
-    public void copyFile(File source, File destination) throws IOException {
+    public void copyFile(FileItem source, FileItem destination) throws IOException {
         Files.copy(
-                source.toPath(),
-                destination.toPath(),
+                toFile(source).toPath(),
+                toFile(destination).toPath(),
                 StandardCopyOption.REPLACE_EXISTING
         );
     }
 
     @Override
-    public void createFolder(File folder) throws IOException {
-        if (!folder.exists()) {
-            Files.createDirectories(folder.toPath());
+    public void createFolder(FileItem folder) throws IOException {
+        File file = toFile(folder);
+
+        if (!file.exists()) {
+            Files.createDirectories(file.toPath());
         }
     }
 
     @Override
-    public void moveItem(File source, File destination) throws IOException {
+    public void moveItem(FileItem source, FileItem destination) throws IOException {
         Files.move(
-                source.toPath(),
-                destination.toPath(),
+                toFile(source).toPath(),
+                toFile(destination).toPath(),
                 StandardCopyOption.REPLACE_EXISTING
         );
     }
 
     @Override
-    public boolean rename(File source, File renamed) {
-        return source.renameTo(renamed);
+    public boolean rename(FileItem source, FileItem renamed) {
+        return toFile(source).renameTo(toFile(renamed));
     }
 
     @Override
-    public void delete(File file) throws IOException {
-        Files.deleteIfExists(file.toPath());
+    public void delete(FileItem item) throws IOException {
+        Files.deleteIfExists(toFile(item).toPath());
     }
 }

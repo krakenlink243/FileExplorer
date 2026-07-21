@@ -1,38 +1,49 @@
 package repository;
 
+import model.FileItem;
 import model.ItemTimes;
 
-import java.io.File;
 import java.io.IOException;
 
 /**
- * Every read from and write to the underlying storage goes through this
- * interface, so the layers above never touch the storage API directly.
+ * The only way in or out of the underlying storage. Everything above this
+ * interface speaks in FileItem, which carries no storage operations, so the
+ * compiler stops any layer from reaching the disk on its own.
  *
  * The operations here are deliberately primitive: copy one file, create one
  * folder, delete one item. Walking a folder tree is business logic and belongs
  * to the service layer.
  */
 public interface FileSystemRepository {
-    File[] getRoots();
+    FileItem[] getRoots();
 
-    File[] getChildren(File folder);
+    FileItem[] getChildren(FileItem folder);
 
-    boolean exists(File file);
+    /** Reads whatever currently sits at the given absolute path. */
+    FileItem itemAt(String path);
 
-    boolean isDirectory(File file);
+    /** The item named {@code name} inside {@code parent}, existing or not. */
+    FileItem resolveChild(FileItem parent, String name);
 
-    long getSize(File file);
+    /** The item named {@code name} next to {@code item}, existing or not. */
+    FileItem resolveSibling(FileItem item, String name);
 
-    ItemTimes readTimes(File file);
+    /** The folder containing {@code item}, or null when it has no parent. */
+    FileItem getParent(FileItem item);
 
-    void copyFile(File source, File destination) throws IOException;
+    boolean exists(FileItem item);
 
-    void createFolder(File folder) throws IOException;
+    long getSize(FileItem item);
 
-    void moveItem(File source, File destination) throws IOException;
+    ItemTimes readTimes(FileItem item);
 
-    boolean rename(File source, File renamed);
+    void copyFile(FileItem source, FileItem destination) throws IOException;
 
-    void delete(File file) throws IOException;
+    void createFolder(FileItem folder) throws IOException;
+
+    void moveItem(FileItem source, FileItem destination) throws IOException;
+
+    boolean rename(FileItem source, FileItem renamed);
+
+    void delete(FileItem item) throws IOException;
 }

@@ -1,6 +1,7 @@
 package presentation;
 
 import controller.FileExplorerController;
+import model.FileItem;
 
 import javax.swing.JFrame;
 import javax.swing.JSplitPane;
@@ -8,7 +9,6 @@ import javax.swing.SwingUtilities;
 import javax.swing.event.TreeSelectionEvent;
 import javax.swing.event.TreeSelectionListener;
 import java.awt.BorderLayout;
-import java.io.File;
 
 public class MainFrame extends JFrame {
     private final FileTreePanel fileTreePanel;
@@ -59,10 +59,10 @@ public class MainFrame extends JFrame {
         fileTreePanel.getTree().addTreeSelectionListener(new TreeSelectionListener() {
             @Override
             public void valueChanged(TreeSelectionEvent event) {
-                File selectedFile = fileTreePanel.getSelectedFile();
+                FileItem selectedItem = fileTreePanel.getSelectedItem();
 
-                if (selectedFile != null && selectedFile.isDirectory()) {
-                    fileListPanel.displayFiles(selectedFile);
+                if (selectedItem != null && selectedItem.isDirectory()) {
+                    fileListPanel.displayFiles(selectedItem);
                 }
             }
         });

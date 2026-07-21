@@ -1,7 +1,5 @@
 package model;
 
-import java.io.File;
-
 public class FileProperty implements ItemProperty {
     private final String kind;
     private final String name;
@@ -12,22 +10,22 @@ public class FileProperty implements ItemProperty {
     private final long size;
 
     public FileProperty(
-            File file,
+            String name,
+            String location,
             long size,
             long createdTime,
             long modifiedTime
     ) {
         this.kind = "File";
-        this.name = file.getName();
-        this.extension = extractExtension(file);
-        this.location = file.getParent();
+        this.name = name;
+        this.extension = extractExtension(name);
+        this.location = location;
         this.createdTime = createdTime;
         this.modifiedTime = modifiedTime;
         this.size = size;
     }
 
-    private String extractExtension(File file) {
-        String fileName = file.getName();
+    private String extractExtension(String fileName) {
         int dotIndex = fileName.lastIndexOf(".");
 
         if (dotIndex == -1 || dotIndex == fileName.length() - 1) {

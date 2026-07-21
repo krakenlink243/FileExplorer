@@ -1,6 +1,7 @@
 package presentation;
 
 import controller.FileExplorerController;
+import model.FileItem;
 
 import javax.swing.JFileChooser;
 import javax.swing.JDialog;
@@ -12,21 +13,20 @@ import javax.swing.JTextArea;
 import javax.swing.SwingWorker;
 import java.awt.BorderLayout;
 import java.awt.Dimension;
-import java.io.File;
 import java.util.function.Supplier;
 
 public class FileContextMenu extends JPopupMenu {
     private final FileExplorerController controller;
-    private final Supplier<File> selectedFileSupplier;
+    private final Supplier<FileItem> selectedItemSupplier;
     private final Runnable refreshAction;
 
     public FileContextMenu(
             FileExplorerController controller,
-            Supplier<File> selectedFileSupplier,
+            Supplier<FileItem> selectedItemSupplier,
             Runnable refreshAction
     ) {
         this.controller = controller;
-        this.selectedFileSupplier = selectedFileSupplier;
+        this.selectedItemSupplier = selectedItemSupplier;
         this.refreshAction = refreshAction;
 
         initMenuItems();
@@ -50,19 +50,19 @@ public class FileContextMenu extends JPopupMenu {
         add(propertiesItem);
     }
 
-    private File getSelectedFile() {
-        return selectedFileSupplier.get();
+    private FileItem getSelectedItem() {
+        return selectedItemSupplier.get();
     }
 
     private void copySelectedFile() {
-        File selectedFile = getSelectedFile();
+        FileItem selectedFile = getSelectedItem();
 
         if (selectedFile == null) {
             showMessage("Please select a file or folder.");
             return;
         }
 
-        File destinationFolder = chooseDestinationFolder();
+        FileItem destinationFolder = chooseDestinationFolder();
 
         if (destinationFolder == null) {
             return;
@@ -78,14 +78,14 @@ public class FileContextMenu extends JPopupMenu {
     }
 
     private void moveSelectedFile() {
-        File selectedFile = getSelectedFile();
+        FileItem selectedFile = getSelectedItem();
 
         if (selectedFile == null) {
             showMessage("Please select a file or folder.");
             return;
         }
 
-        File destinationFolder = chooseDestinationFolder();
+        FileItem destinationFolder = chooseDestinationFolder();
 
         if (destinationFolder == null) {
             return;
@@ -101,7 +101,7 @@ public class FileContextMenu extends JPopupMenu {
     }
 
     private void renameSelectedFile() {
-        File selectedFile = getSelectedFile();
+        FileItem selectedFile = getSelectedItem();
 
         if (selectedFile == null) {
             showMessage("Please select a file or folder.");
@@ -133,7 +133,7 @@ public class FileContextMenu extends JPopupMenu {
     }
 
     private void showSelectedFileProperties() {
-        File selectedFile = getSelectedFile();
+        FileItem selectedFile = getSelectedItem();
 
         if (selectedFile == null) {
             showMessage("Please select a file or folder.");
@@ -186,18 +186,20 @@ public class FileContextMenu extends JPopupMenu {
         worker.execute();
     }
 
-    private File chooseDestinationFolder() {
+    private FileItem chooseDestinationFolder() {
         JFileChooser fileChooser = new JFileChooser();
         fileChooser.setDialogTitle("Choose destination folder");
         fileChooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
 
         int result = fileChooser.showOpenDialog(this);
 
-        if (result == JFileChooser.APPROVE_OPTION) {
-            return fileChooser.getSelectedFile();
+        if (result != JFileChooser.APPROVE_OPTION) {
+            return null;
         }
 
-        return null;
+        // JFileChooser hands back a java.io.File, so ask the controller to turn
+        // the path into the item type the rest of the program speaks.
+        return controller.itemAt(fileChooser.getSelectedFile().getAbsolutePath());
     }
 
     private void showMessage(String message) {

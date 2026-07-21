@@ -34,11 +34,12 @@ public class FileItemRenderer extends DefaultListCellRenderer {
         );
 
         if (value instanceof FileItem fileItem) {
-            File file = fileItem.getFile();
-
             label.setText(fileItem.getName());
 
-            Icon icon = fileChooser.getIcon(file);
+            // Swing's icon lookup only accepts java.io.File, so this renderer
+            // is the one place above the repository that still builds one. It
+            // is read-only: the File is handed straight to Swing and dropped.
+            Icon icon = fileChooser.getIcon(new File(fileItem.getPath()));
             label.setIcon(icon);
         }
 

@@ -1,8 +1,8 @@
 package service;
 
+import model.FileItem;
 import repository.FileSystemRepository;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
 
@@ -14,26 +14,28 @@ public class FileOperationService {
         this.fileSystemRepository = fileSystemRepository;
     }
 
-    public void copy(File source, File destinationFolder) throws IOException {
+    public void copy(FileItem source, FileItem destinationFolder) throws IOException {
         validateSource(source);
         validateDestinationFolder(destinationFolder);
         validateNotIntoItself(source, destinationFolder);
 
-        File destination = new File(destinationFolder, source.getName());
+        FileItem destination =
+                fileSystemRepository.resolveChild(destinationFolder, source.getName());
 
-        if (fileSystemRepository.isDirectory(source)) {
+        if (source.isDirectory()) {
             copyFolder(source, destination);
         } else {
             fileSystemRepository.copyFile(source, destination);
         }
     }
 
-    public void move(File source, File destinationFolder) throws IOException {
+    public void move(FileItem source, FileItem destinationFolder) throws IOException {
         validateSource(source);
         validateDestinationFolder(destinationFolder);
         validateNotIntoItself(source, destinationFolder);
 
-        File destination = new File(destinationFolder, source.getName());
+        FileItem destination =
+                fileSystemRepository.resolveChild(destinationFolder, source.getName());
 
         try {
             fileSystemRepository.moveItem(source, destination);
@@ -45,25 +47,27 @@ public class FileOperationService {
         }
     }
 
-    public boolean rename(File source, String newName) {
+    public boolean rename(FileItem source, String newName) {
         validateSource(source);
 
         if (newName == null || newName.trim().isEmpty()) {
             throw new IllegalArgumentException("New name cannot be empty.");
         }
 
-        File renamedFile = new File(source.getParentFile(), newName.trim());
+        FileItem renamed =
+                fileSystemRepository.resolveSibling(source, newName.trim());
 
-        return fileSystemRepository.rename(source, renamedFile);
+        return fileSystemRepository.rename(source, renamed);
     }
 
-    private void copyFolder(File sourceFolder, File destinationFolder) throws IOException {
+    private void copyFolder(FileItem sourceFolder, FileItem destinationFolder) throws IOException {
         fileSystemRepository.createFolder(destinationFolder);
 
-        for (File child : fileSystemRepository.getChildren(sourceFolder)) {
-            File destinationChild = new File(destinationFolder, child.getName());
+        for (FileItem child : fileSystemRepository.getChildren(sourceFolder)) {
+            FileItem destinationChild =
+                    fileSystemRepository.resolveChild(destinationFolder, child.getName());
 
-            if (fileSystemRepository.isDirectory(child)) {
+            if (child.isDirectory()) {
                 copyFolder(child, destinationChild);
             } else {
                 fileSystemRepository.copyFile(child, destinationChild);
@@ -71,22 +75,24 @@ public class FileOperationService {
         }
     }
 
-    private void deleteRecursively(File file) throws IOException {
-        for (File child : fileSystemRepository.getChildren(file)) {
+    private void deleteRecursively(FileItem item) throws IOException {
+        for (FileItem child : fileSystemRepository.getChildren(item)) {
             deleteRecursively(child);
         }
 
-        fileSystemRepository.delete(file);
+        fileSystemRepository.delete(item);
     }
 
-    private void validateSource(File source) {
+    private void validateSource(FileItem source) {
         if (!fileSystemRepository.exists(source)) {
             throw new IllegalArgumentException("Source does not exist.");
         }
     }
 
-    private void validateDestinationFolder(File destinationFolder) {
-        if (!fileSystemRepository.isDirectory(destinationFolder)) {
+    private void validateDestinationFolder(FileItem destinationFolder) {
+        if (destinationFolder == null
+                || !destinationFolder.isDirectory()
+                || !fileSystemRepository.exists(destinationFolder)) {
             throw new IllegalArgumentException("Invalid destination folder.");
         }
     }
@@ -94,14 +100,17 @@ public class FileOperationService {
     /**
      * Copying a folder into itself or into one of its own descendants would
      * recurse forever, because the copy keeps re-creating what it is reading.
+     *
+     * This compares paths only, which is arithmetic on text and never reads
+     * from storage.
      */
-    private void validateNotIntoItself(File source, File destinationFolder) {
-        if (!fileSystemRepository.isDirectory(source)) {
+    private void validateNotIntoItself(FileItem source, FileItem destinationFolder) {
+        if (!source.isDirectory()) {
             return;
         }
 
-        Path sourcePath = source.toPath().toAbsolutePath().normalize();
-        Path destinationPath = destinationFolder.toPath().toAbsolutePath().normalize();
+        Path sourcePath = Path.of(source.getPath()).toAbsolutePath().normalize();
+        Path destinationPath = Path.of(destinationFolder.getPath()).toAbsolutePath().normalize();
 
         if (destinationPath.startsWith(sourcePath)) {
             throw new IllegalArgumentException(

@@ -16,7 +16,6 @@ import javax.swing.tree.TreePath;
 import java.awt.BorderLayout;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.io.File;
 import java.util.Enumeration;
 import java.util.HashSet;
 import java.util.Set;
@@ -44,19 +43,17 @@ public class FileTreePanel extends JPanel {
     private void loadRoots() {
         rootNode.removeAllChildren();
 
-        File[] roots = controller.getRoots();
-
-        for (File root : roots) {
+        for (FileItem root : controller.getRoots()) {
             rootNode.add(createTreeNode(root));
         }
 
         treeModel.reload();
     }
 
-    private DefaultMutableTreeNode createTreeNode(File file) {
-        DefaultMutableTreeNode treeNode = new DefaultMutableTreeNode(new FileItem(file));
+    private DefaultMutableTreeNode createTreeNode(FileItem item) {
+        DefaultMutableTreeNode treeNode = new DefaultMutableTreeNode(item);
 
-        if (file.isDirectory()) {
+        if (item.isDirectory()) {
             treeNode.add(new DefaultMutableTreeNode("Loading..."));
         }
 
@@ -99,13 +96,9 @@ public class FileTreePanel extends JPanel {
             return;
         }
 
-        File folder = fileItem.getFile();
-
         node.removeAllChildren();
 
-        File[] children = controller.getChildren(folder);
-
-        for (File child : children) {
+        for (FileItem child : controller.getChildren(fileItem)) {
             if (child.isDirectory()) {
                 node.add(createTreeNode(child));
             }
@@ -121,7 +114,7 @@ public class FileTreePanel extends JPanel {
     public void installContextMenu(Runnable refreshAction) {
         FileContextMenu contextMenu = new FileContextMenu(
                 controller,
-                this::getSelectedFile,
+                this::getSelectedItem,
                 refreshAction
         );
 
@@ -179,7 +172,7 @@ public class FileTreePanel extends JPanel {
                     (DefaultMutableTreeNode) expanded.nextElement().getLastPathComponent();
 
             if (node.getUserObject() instanceof FileItem fileItem) {
-                expandedPaths.add(fileItem.getFile().getAbsolutePath());
+                expandedPaths.add(fileItem.getPath());
             }
         }
 
@@ -195,7 +188,7 @@ public class FileTreePanel extends JPanel {
                     (DefaultMutableTreeNode) path.getLastPathComponent();
 
             if (node.getUserObject() instanceof FileItem fileItem
-                    && expandedPaths.contains(fileItem.getFile().getAbsolutePath())) {
+                    && expandedPaths.contains(fileItem.getPath())) {
                 tree.expandPath(path);
             }
         }
@@ -205,7 +198,7 @@ public class FileTreePanel extends JPanel {
         return tree;
     }
 
-    public File getSelectedFile() {
+    public FileItem getSelectedItem() {
         DefaultMutableTreeNode selectedNode =
                 (DefaultMutableTreeNode) tree.getLastSelectedPathComponent();
 
@@ -216,7 +209,7 @@ public class FileTreePanel extends JPanel {
         Object userObject = selectedNode.getUserObject();
 
         if (userObject instanceof FileItem fileItem) {
-            return fileItem.getFile();
+            return fileItem;
         }
 
         return null;

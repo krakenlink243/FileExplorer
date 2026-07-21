@@ -1,34 +1,48 @@
 package model;
 
-import java.io.File;
-
+/**
+ * One file or folder, as it was when the repository read it.
+ *
+ * This is the type every layer passes around. It deliberately has no method
+ * that touches storage: whoever holds a FileItem can read what it says, but
+ * cannot copy, rename or delete anything with it. Those operations exist only
+ * on the repository.
+ */
 public class FileItem {
-    private final File file;
+    private final String path;
+    private final String name;
+    private final boolean directory;
 
-    public FileItem(File file) {
-        this.file = file;
+    public FileItem(String path, String name, boolean directory) {
+        this.path = path;
+        this.name = name;
+        this.directory = directory;
     }
 
-    public File getFile() {
-        return file;
+    public String getPath() {
+        return path;
     }
 
     public String getName() {
-        String name = file.getName();
-
-        if (name == null || name.isEmpty()) {
-            return file.getAbsolutePath();
-        }
-
         return name;
     }
 
     public boolean isDirectory() {
-        return file.isDirectory();
+        return directory;
+    }
+
+    @Override
+    public boolean equals(Object other) {
+        return other instanceof FileItem item && path.equals(item.path);
+    }
+
+    @Override
+    public int hashCode() {
+        return path.hashCode();
     }
 
     @Override
     public String toString() {
-        return getName();
+        return name;
     }
 }

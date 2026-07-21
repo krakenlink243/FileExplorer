@@ -1,11 +1,10 @@
 package service;
 
+import model.FileItem;
 import model.FileProperty;
 import model.FolderProperty;
 import model.ItemTimes;
 import repository.FileSystemRepository;
-
-import java.io.File;
 
 public class FilePropertyService {
 
@@ -15,22 +14,24 @@ public class FilePropertyService {
         this.fileSystemRepository = fileSystemRepository;
     }
 
-    public FileProperty getFileProperty(File file) {
-        if (!fileSystemRepository.exists(file) || fileSystemRepository.isDirectory(file)) {
+    public FileProperty getFileProperty(FileItem file) {
+        if (file == null || file.isDirectory() || !fileSystemRepository.exists(file)) {
             throw new IllegalArgumentException("Invalid file.");
         }
 
         ItemTimes times = fileSystemRepository.readTimes(file);
+        FileItem parent = fileSystemRepository.getParent(file);
 
         return new FileProperty(
-                file,
+                file.getName(),
+                parent == null ? "" : parent.getPath(),
                 fileSystemRepository.getSize(file),
                 times.getCreatedTime(),
                 times.getModifiedTime()
         );
     }
 
-    public FolderProperty getFolderProperty(File folder) {
+    public FolderProperty getFolderProperty(FileItem folder) {
         validateFolder(folder);
 
         return buildFolderProperty(folder, countFolder(folder), true);
@@ -40,14 +41,14 @@ public class FilePropertyService {
      * Reads a folder without walking its children, so the caller can show
      * something immediately while the full count runs in the background.
      */
-    public FolderProperty getFolderSummary(File folder) {
+    public FolderProperty getFolderSummary(FileItem folder) {
         validateFolder(folder);
 
         return buildFolderProperty(folder, new FolderCounter(), false);
     }
 
     private FolderProperty buildFolderProperty(
-            File folder,
+            FileItem folder,
             FolderCounter counter,
             boolean contentCounted
     ) {
@@ -55,7 +56,7 @@ public class FilePropertyService {
 
         return new FolderProperty(
                 "Folder",
-                folder.getAbsolutePath(),
+                folder.getPath(),
                 times.getCreatedTime(),
                 times.getModifiedTime(),
                 counter.totalSize,
@@ -65,11 +66,11 @@ public class FilePropertyService {
         );
     }
 
-    private FolderCounter countFolder(File folder) {
+    private FolderCounter countFolder(FileItem folder) {
         FolderCounter counter = new FolderCounter();
 
-        for (File child : fileSystemRepository.getChildren(folder)) {
-            if (fileSystemRepository.isDirectory(child)) {
+        for (FileItem child : fileSystemRepository.getChildren(folder)) {
+            if (child.isDirectory()) {
                 counter.folderCount++;
 
                 FolderCounter childCounter = countFolder(child);
@@ -85,8 +86,10 @@ public class FilePropertyService {
         return counter;
     }
 
-    private void validateFolder(File folder) {
-        if (!fileSystemRepository.isDirectory(folder)) {
+    private void validateFolder(FileItem folder) {
+        if (folder == null
+                || !folder.isDirectory()
+                || !fileSystemRepository.exists(folder)) {
             throw new IllegalArgumentException("Invalid folder.");
         }
     }
