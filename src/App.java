@@ -18,10 +18,10 @@ public class App {
                     new LocalFileSystemRepository(rootProvider);
 
             FileOperationService fileOperationService =
-                    new FileOperationService();
+                    new FileOperationService(fileSystemRepository);
 
             FilePropertyService filePropertyService =
-                    new FilePropertyService();
+                    new FilePropertyService(fileSystemRepository);
 
             FileExplorerController controller =
                     new FileExplorerController(

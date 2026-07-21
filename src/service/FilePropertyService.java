@@ -2,35 +2,38 @@ package service;
 
 import model.FileProperty;
 import model.FolderProperty;
+import model.ItemTimes;
+import repository.FileSystemRepository;
 
 import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.attribute.BasicFileAttributes;
 
 public class FilePropertyService {
 
+    private final FileSystemRepository fileSystemRepository;
+
+    public FilePropertyService(FileSystemRepository fileSystemRepository) {
+        this.fileSystemRepository = fileSystemRepository;
+    }
+
     public FileProperty getFileProperty(File file) {
-        if (file == null || !file.exists() || !file.isFile()) {
+        if (!fileSystemRepository.exists(file) || fileSystemRepository.isDirectory(file)) {
             throw new IllegalArgumentException("Invalid file.");
         }
 
-        BasicFileAttributes attributes = readAttributes(file);
+        ItemTimes times = fileSystemRepository.readTimes(file);
 
         return new FileProperty(
                 file,
-                attributes.creationTime().toMillis(),
-                attributes.lastModifiedTime().toMillis()
+                fileSystemRepository.getSize(file),
+                times.getCreatedTime(),
+                times.getModifiedTime()
         );
     }
 
     public FolderProperty getFolderProperty(File folder) {
         validateFolder(folder);
 
-        BasicFileAttributes attributes = readAttributes(folder);
-        FolderCounter counter = countFolder(folder);
-
-        return buildFolderProperty(folder, attributes, counter, true);
+        return buildFolderProperty(folder, countFolder(folder), true);
     }
 
     /**
@@ -40,20 +43,21 @@ public class FilePropertyService {
     public FolderProperty getFolderSummary(File folder) {
         validateFolder(folder);
 
-        return buildFolderProperty(folder, readAttributes(folder), new FolderCounter(), false);
+        return buildFolderProperty(folder, new FolderCounter(), false);
     }
 
     private FolderProperty buildFolderProperty(
             File folder,
-            BasicFileAttributes attributes,
             FolderCounter counter,
             boolean contentCounted
     ) {
+        ItemTimes times = fileSystemRepository.readTimes(folder);
+
         return new FolderProperty(
                 "Folder",
                 folder.getAbsolutePath(),
-                attributes.creationTime().toMillis(),
-                attributes.lastModifiedTime().toMillis(),
+                times.getCreatedTime(),
+                times.getModifiedTime(),
                 counter.totalSize,
                 counter.folderCount,
                 counter.fileCount,
@@ -64,14 +68,8 @@ public class FilePropertyService {
     private FolderCounter countFolder(File folder) {
         FolderCounter counter = new FolderCounter();
 
-        File[] children = folder.listFiles();
-
-        if (children == null) {
-            return counter;
-        }
-
-        for (File child : children) {
-            if (child.isDirectory()) {
+        for (File child : fileSystemRepository.getChildren(folder)) {
+            if (fileSystemRepository.isDirectory(child)) {
                 counter.folderCount++;
 
                 FolderCounter childCounter = countFolder(child);
@@ -80,7 +78,7 @@ public class FilePropertyService {
                 counter.fileCount += childCounter.fileCount;
             } else {
                 counter.fileCount++;
-                counter.totalSize += child.length();
+                counter.totalSize += fileSystemRepository.getSize(child);
             }
         }
 
@@ -88,16 +86,8 @@ public class FilePropertyService {
     }
 
     private void validateFolder(File folder) {
-        if (folder == null || !folder.exists() || !folder.isDirectory()) {
+        if (!fileSystemRepository.isDirectory(folder)) {
             throw new IllegalArgumentException("Invalid folder.");
-        }
-    }
-
-    private BasicFileAttributes readAttributes(File file) {
-        try {
-            return Files.readAttributes(file.toPath(), BasicFileAttributes.class);
-        } catch (IOException exception) {
-            throw new IllegalArgumentException("Cannot read file attributes.");
         }
     }
 

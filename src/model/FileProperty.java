@@ -13,6 +13,7 @@ public class FileProperty implements ItemProperty {
 
     public FileProperty(
             File file,
+            long size,
             long createdTime,
             long modifiedTime
     ) {
@@ -22,7 +23,7 @@ public class FileProperty implements ItemProperty {
         this.location = file.getParent();
         this.createdTime = createdTime;
         this.modifiedTime = modifiedTime;
-        this.size = file.length();
+        this.size = size;
     }
 
     private String extractExtension(File file) {

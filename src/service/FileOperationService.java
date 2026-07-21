@@ -1,12 +1,18 @@
 package service;
 
+import repository.FileSystemRepository;
+
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
 
 public class FileOperationService {
+
+    private final FileSystemRepository fileSystemRepository;
+
+    public FileOperationService(FileSystemRepository fileSystemRepository) {
+        this.fileSystemRepository = fileSystemRepository;
+    }
 
     public void copy(File source, File destinationFolder) throws IOException {
         validateSource(source);
@@ -15,14 +21,10 @@ public class FileOperationService {
 
         File destination = new File(destinationFolder, source.getName());
 
-        if (source.isDirectory()) {
+        if (fileSystemRepository.isDirectory(source)) {
             copyFolder(source, destination);
         } else {
-            Files.copy(
-                    source.toPath(),
-                    destination.toPath(),
-                    StandardCopyOption.REPLACE_EXISTING
-            );
+            fileSystemRepository.copyFile(source, destination);
         }
     }
 
@@ -34,14 +36,10 @@ public class FileOperationService {
         File destination = new File(destinationFolder, source.getName());
 
         try {
-            Files.move(
-                    source.toPath(),
-                    destination.toPath(),
-                    StandardCopyOption.REPLACE_EXISTING
-            );
+            fileSystemRepository.moveItem(source, destination);
         } catch (IOException exception) {
-            // Moving a non-empty folder across file systems is not supported
-            // by Files.move, so fall back to copying and removing the source.
+            // Moving a non-empty folder across file systems is not supported,
+            // so fall back to copying and removing the source.
             copy(source, destinationFolder);
             deleteRecursively(source);
         }
@@ -56,55 +54,39 @@ public class FileOperationService {
 
         File renamedFile = new File(source.getParentFile(), newName.trim());
 
-        return source.renameTo(renamedFile);
+        return fileSystemRepository.rename(source, renamedFile);
     }
 
     private void copyFolder(File sourceFolder, File destinationFolder) throws IOException {
-        if (!destinationFolder.exists()) {
-            Files.createDirectories(destinationFolder.toPath());
-        }
+        fileSystemRepository.createFolder(destinationFolder);
 
-        File[] children = sourceFolder.listFiles();
-
-        if (children == null) {
-            return;
-        }
-
-        for (File child : children) {
+        for (File child : fileSystemRepository.getChildren(sourceFolder)) {
             File destinationChild = new File(destinationFolder, child.getName());
 
-            if (child.isDirectory()) {
+            if (fileSystemRepository.isDirectory(child)) {
                 copyFolder(child, destinationChild);
             } else {
-                Files.copy(
-                        child.toPath(),
-                        destinationChild.toPath(),
-                        StandardCopyOption.REPLACE_EXISTING
-                );
+                fileSystemRepository.copyFile(child, destinationChild);
             }
         }
     }
 
     private void deleteRecursively(File file) throws IOException {
-        File[] children = file.listFiles();
-
-        if (children != null) {
-            for (File child : children) {
-                deleteRecursively(child);
-            }
+        for (File child : fileSystemRepository.getChildren(file)) {
+            deleteRecursively(child);
         }
 
-        Files.deleteIfExists(file.toPath());
+        fileSystemRepository.delete(file);
     }
 
     private void validateSource(File source) {
-        if (source == null || !source.exists()) {
+        if (!fileSystemRepository.exists(source)) {
             throw new IllegalArgumentException("Source does not exist.");
         }
     }
 
     private void validateDestinationFolder(File destinationFolder) {
-        if (destinationFolder == null || !destinationFolder.exists() || !destinationFolder.isDirectory()) {
+        if (!fileSystemRepository.isDirectory(destinationFolder)) {
             throw new IllegalArgumentException("Invalid destination folder.");
         }
     }
@@ -114,7 +96,7 @@ public class FileOperationService {
      * recurse forever, because the copy keeps re-creating what it is reading.
      */
     private void validateNotIntoItself(File source, File destinationFolder) {
-        if (!source.isDirectory()) {
+        if (!fileSystemRepository.isDirectory(source)) {
             return;
         }
 

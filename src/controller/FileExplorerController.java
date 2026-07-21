@@ -46,7 +46,7 @@ public class FileExplorerController {
     public ItemProperty getProperties(File file) {
         validateExists(file);
 
-        if (file.isDirectory()) {
+        if (fileSystemRepository.isDirectory(file)) {
             return filePropertyService.getFolderProperty(file);
         }
 
@@ -60,7 +60,7 @@ public class FileExplorerController {
     public ItemProperty getPropertiesSummary(File file) {
         validateExists(file);
 
-        if (file.isDirectory()) {
+        if (fileSystemRepository.isDirectory(file)) {
             return filePropertyService.getFolderSummary(file);
         }
 
@@ -68,7 +68,7 @@ public class FileExplorerController {
     }
 
     private void validateExists(File file) {
-        if (file == null || !file.exists()) {
+        if (!fileSystemRepository.exists(file)) {
             throw new IllegalArgumentException("File or folder does not exist.");
         }
     }
