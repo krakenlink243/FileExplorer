@@ -39,7 +39,6 @@ public class FileTreePanel extends JPanel {
 
         loadRoots();
         initLazyLoading();
-        initContextMenu();
     }
 
     private void loadRoots() {
@@ -115,11 +114,15 @@ public class FileTreePanel extends JPanel {
         treeModel.reload(node);
     }
 
-    private void initContextMenu() {
+    /**
+     * Called by MainFrame, which supplies a refresh action covering both
+     * panels rather than this one alone.
+     */
+    public void installContextMenu(Runnable refreshAction) {
         FileContextMenu contextMenu = new FileContextMenu(
                 controller,
                 this::getSelectedFile,
-                this::refreshTree
+                refreshAction
         );
 
         tree.addMouseListener(new MouseAdapter() {
@@ -154,7 +157,7 @@ public class FileTreePanel extends JPanel {
      * Rebuilds the tree while keeping the folders the user had opened, so a
      * copy or rename does not collapse everything back to the roots.
      */
-    private void refreshTree() {
+    public void refreshTree() {
         Set<String> expandedPaths = captureExpandedPaths();
 
         loadRoots();

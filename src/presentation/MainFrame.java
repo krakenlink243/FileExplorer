@@ -20,6 +20,7 @@ public class MainFrame extends JFrame {
 
         initFrame();
         initEvents();
+        initContextMenus();
     }
 
     private void initFrame() {
@@ -38,6 +39,20 @@ public class MainFrame extends JFrame {
 
         setLayout(new BorderLayout());
         add(splitPane, BorderLayout.CENTER);
+    }
+
+    /**
+     * Both panels show the same file system, so a copy, move or rename started
+     * from either one has to be reflected on both.
+     */
+    private void initContextMenus() {
+        fileTreePanel.installContextMenu(this::refreshPanels);
+        fileListPanel.installContextMenu(this::refreshPanels);
+    }
+
+    private void refreshPanels() {
+        fileTreePanel.refreshTree();
+        fileListPanel.refreshCurrentFolder();
     }
 
     private void initEvents() {

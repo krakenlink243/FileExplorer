@@ -30,8 +30,6 @@ public class FileListPanel extends JPanel {
         setLayout(new BorderLayout());
         add(new JLabel(" Files and Folders"), BorderLayout.NORTH);
         add(new JScrollPane(fileList), BorderLayout.CENTER);
-
-        initContextMenu();
     }
 
     public void displayFiles(File folder) {
@@ -45,17 +43,23 @@ public class FileListPanel extends JPanel {
         }
     }
 
+    /**
+     * Redraws the folder being shown. A folder that disappeared meanwhile just
+     * yields an empty list, which is what the user should see.
+     */
     public void refreshCurrentFolder() {
-        if (currentFolder != null && currentFolder.exists()) {
-            displayFiles(currentFolder);
-        }
+        displayFiles(currentFolder);
     }
 
-    private void initContextMenu() {
+    /**
+     * Called by MainFrame, which supplies a refresh action covering both
+     * panels rather than this one alone.
+     */
+    public void installContextMenu(Runnable refreshAction) {
         FileContextMenu contextMenu = new FileContextMenu(
                 controller,
                 this::getSelectedFile,
-                this::refreshCurrentFolder
+                refreshAction
         );
 
         fileList.addMouseListener(new MouseAdapter() {
