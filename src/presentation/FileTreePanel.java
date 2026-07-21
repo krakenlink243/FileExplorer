@@ -17,6 +17,9 @@ import java.awt.BorderLayout;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.File;
+import java.util.Enumeration;
+import java.util.HashSet;
+import java.util.Set;
 
 public class FileTreePanel extends JPanel {
     private final FileExplorerController controller;
@@ -147,8 +150,52 @@ public class FileTreePanel extends JPanel {
         contextMenu.show(tree, event.getX(), event.getY());
     }
 
+    /**
+     * Rebuilds the tree while keeping the folders the user had opened, so a
+     * copy or rename does not collapse everything back to the roots.
+     */
     private void refreshTree() {
+        Set<String> expandedPaths = captureExpandedPaths();
+
         loadRoots();
+        restoreExpansion(expandedPaths);
+    }
+
+    private Set<String> captureExpandedPaths() {
+        Set<String> expandedPaths = new HashSet<>();
+
+        Enumeration<TreePath> expanded =
+                tree.getExpandedDescendants(new TreePath(rootNode));
+
+        if (expanded == null) {
+            return expandedPaths;
+        }
+
+        while (expanded.hasMoreElements()) {
+            DefaultMutableTreeNode node =
+                    (DefaultMutableTreeNode) expanded.nextElement().getLastPathComponent();
+
+            if (node.getUserObject() instanceof FileItem fileItem) {
+                expandedPaths.add(fileItem.getFile().getAbsolutePath());
+            }
+        }
+
+        return expandedPaths;
+    }
+
+    private void restoreExpansion(Set<String> expandedPaths) {
+        // Expanding a row lazily loads its children and appends new rows below,
+        // so re-reading getRowCount() each pass walks the whole restored tree.
+        for (int row = 0; row < tree.getRowCount(); row++) {
+            TreePath path = tree.getPathForRow(row);
+            DefaultMutableTreeNode node =
+                    (DefaultMutableTreeNode) path.getLastPathComponent();
+
+            if (node.getUserObject() instanceof FileItem fileItem
+                    && expandedPaths.contains(fileItem.getFile().getAbsolutePath())) {
+                tree.expandPath(path);
+            }
+        }
     }
 
     public JTree getTree() {
