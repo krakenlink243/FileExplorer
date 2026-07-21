@@ -2,33 +2,33 @@ package controller;
 
 import model.FileItem;
 import model.ItemProperty;
-import repository.FileSystemRepository;
+import service.FileBrowsingService;
 import service.FileOperationService;
 import service.FilePropertyService;
 
 import java.io.IOException;
 
 public class FileExplorerController {
-    private final FileSystemRepository fileSystemRepository;
+    private final FileBrowsingService fileBrowsingService;
     private final FileOperationService fileOperationService;
     private final FilePropertyService filePropertyService;
 
     public FileExplorerController(
-            FileSystemRepository fileSystemRepository,
+            FileBrowsingService fileBrowsingService,
             FileOperationService fileOperationService,
             FilePropertyService filePropertyService
     ) {
-        this.fileSystemRepository = fileSystemRepository;
+        this.fileBrowsingService = fileBrowsingService;
         this.fileOperationService = fileOperationService;
         this.filePropertyService = filePropertyService;
     }
 
     public FileItem[] getRoots() {
-        return fileSystemRepository.getRoots();
+        return fileBrowsingService.getRoots();
     }
 
     public FileItem[] getChildren(FileItem folder) {
-        return fileSystemRepository.getChildren(folder);
+        return fileBrowsingService.getChildren(folder);
     }
 
     /**
@@ -36,7 +36,7 @@ public class FileExplorerController {
      * file chooser, into an item the other methods accept.
      */
     public FileItem itemAt(String path) {
-        return fileSystemRepository.itemAt(path);
+        return fileBrowsingService.itemAt(path);
     }
 
     public void copy(FileItem source, FileItem destinationFolder) throws IOException {
@@ -76,7 +76,7 @@ public class FileExplorerController {
     }
 
     private void validateExists(FileItem item) {
-        if (!fileSystemRepository.exists(item)) {
+        if (!fileBrowsingService.exists(item)) {
             throw new IllegalArgumentException("File or folder does not exist.");
         }
     }

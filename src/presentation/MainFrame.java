@@ -5,7 +5,6 @@ import model.FileItem;
 
 import javax.swing.JFrame;
 import javax.swing.JSplitPane;
-import javax.swing.SwingUtilities;
 import javax.swing.event.TreeSelectionEvent;
 import javax.swing.event.TreeSelectionListener;
 import java.awt.BorderLayout;

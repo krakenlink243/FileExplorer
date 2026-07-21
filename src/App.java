@@ -4,6 +4,7 @@ import platform.RootProviderFactory;
 import presentation.MainFrame;
 import repository.FileSystemRepository;
 import repository.LocalFileSystemRepository;
+import service.FileBrowsingService;
 import service.FileOperationService;
 import service.FilePropertyService;
 
@@ -17,6 +18,9 @@ public class App {
             FileSystemRepository fileSystemRepository =
                     new LocalFileSystemRepository(rootProvider);
 
+            FileBrowsingService fileBrowsingService =
+                    new FileBrowsingService(fileSystemRepository);
+
             FileOperationService fileOperationService =
                     new FileOperationService(fileSystemRepository);
 
@@ -25,7 +29,7 @@ public class App {
 
             FileExplorerController controller =
                     new FileExplorerController(
-                            fileSystemRepository,
+                            fileBrowsingService,
                             fileOperationService,
                             filePropertyService
                     );
