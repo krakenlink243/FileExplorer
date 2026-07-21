@@ -2,19 +2,19 @@ package model;
 
 import java.io.File;
 
-public class FileProperty {
+public class FileProperty implements ItemProperty {
     private final String kind;
     private final String name;
     private final String extension;
     private final String location;
-    private final String createdTime;
-    private final String modifiedTime;
+    private final long createdTime;
+    private final long modifiedTime;
     private final long size;
 
     public FileProperty(
             File file,
-            String createdTime,
-            String modifiedTime
+            long createdTime,
+            long modifiedTime
     ) {
         this.kind = "File";
         this.name = file.getName();
@@ -36,14 +36,36 @@ public class FileProperty {
         return fileName.substring(dotIndex + 1);
     }
 
-    public String toDisplayString() {
-        return "General:\n\n"
-                + "Kind: " + kind + "\n"
-                + "Name: " + name + "\n"
-                + "Extension: " + extension + "\n"
-                + "Size: " + String.format("%,d", size) + " bytes\n"
-                + "Where: " + location + "\n"
-                + "Created: " + createdTime + "\n"
-                + "Modified: " + modifiedTime;
+    @Override
+    public String getKind() {
+        return kind;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public String getExtension() {
+        return extension;
+    }
+
+    @Override
+    public String getLocation() {
+        return location;
+    }
+
+    @Override
+    public long getCreatedTime() {
+        return createdTime;
+    }
+
+    @Override
+    public long getModifiedTime() {
+        return modifiedTime;
+    }
+
+    @Override
+    public long getSize() {
+        return size;
     }
 }

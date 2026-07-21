@@ -7,13 +7,8 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.attribute.BasicFileAttributes;
-import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
-import java.util.Locale;
 
 public class FilePropertyService {
-    private static final DateTimeFormatter DATE_FORMATTER =
-            DateTimeFormatter.ofPattern("EEEE, dd MMMM yyyy 'at' HH:mm", Locale.ENGLISH);
 
     public FileProperty getFileProperty(File file) {
         if (file == null || !file.exists() || !file.isFile()) {
@@ -24,47 +19,46 @@ public class FilePropertyService {
 
         return new FileProperty(
                 file,
-                formatTime(attributes.creationTime().toMillis()),
-                formatTime(attributes.lastModifiedTime().toMillis())
+                attributes.creationTime().toMillis(),
+                attributes.lastModifiedTime().toMillis()
         );
     }
 
     public FolderProperty getFolderProperty(File folder) {
-        if (folder == null || !folder.exists() || !folder.isDirectory()) {
-            throw new IllegalArgumentException("Invalid folder.");
-        }
+        validateFolder(folder);
 
         BasicFileAttributes attributes = readAttributes(folder);
         FolderCounter counter = countFolder(folder);
 
+        return buildFolderProperty(folder, attributes, counter, true);
+    }
+
+    /**
+     * Reads a folder without walking its children, so the caller can show
+     * something immediately while the full count runs in the background.
+     */
+    public FolderProperty getFolderSummary(File folder) {
+        validateFolder(folder);
+
+        return buildFolderProperty(folder, readAttributes(folder), new FolderCounter(), false);
+    }
+
+    private FolderProperty buildFolderProperty(
+            File folder,
+            BasicFileAttributes attributes,
+            FolderCounter counter,
+            boolean contentCounted
+    ) {
         return new FolderProperty(
                 "Folder",
                 folder.getAbsolutePath(),
-                formatTime(attributes.creationTime().toMillis()),
-                formatTime(attributes.lastModifiedTime().toMillis()),
+                attributes.creationTime().toMillis(),
+                attributes.lastModifiedTime().toMillis(),
                 counter.totalSize,
                 counter.folderCount,
-                counter.fileCount
+                counter.fileCount,
+                contentCounted
         );
-    }
-
-    public String getQuickPropertyText(File file) {
-        if (file == null || !file.exists()) {
-            throw new IllegalArgumentException("File or folder does not exist.");
-        }
-
-        BasicFileAttributes attributes = readAttributes(file);
-
-        if (file.isDirectory()) {
-            return "General:\n\n"
-                    + "Kind: Folder\n"
-                    + "Size: Calculating...\n"
-                    + "Where: " + file.getAbsolutePath() + "\n"
-                    + "Created: " + formatTime(attributes.creationTime().toMillis()) + "\n"
-                    + "Modified: " + formatTime(attributes.lastModifiedTime().toMillis());
-        }
-
-        return getFileProperty(file).toDisplayString();
     }
 
     private FolderCounter countFolder(File folder) {
@@ -93,18 +87,18 @@ public class FilePropertyService {
         return counter;
     }
 
+    private void validateFolder(File folder) {
+        if (folder == null || !folder.exists() || !folder.isDirectory()) {
+            throw new IllegalArgumentException("Invalid folder.");
+        }
+    }
+
     private BasicFileAttributes readAttributes(File file) {
         try {
             return Files.readAttributes(file.toPath(), BasicFileAttributes.class);
         } catch (IOException exception) {
             throw new IllegalArgumentException("Cannot read file attributes.");
         }
-    }
-
-    private String formatTime(long millis) {
-        return java.time.Instant.ofEpochMilli(millis)
-                .atZone(ZoneId.systemDefault())
-                .format(DATE_FORMATTER);
     }
 
     private static class FolderCounter {

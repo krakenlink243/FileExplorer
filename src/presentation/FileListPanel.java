@@ -38,10 +38,6 @@ public class FileListPanel extends JPanel {
         currentFolder = folder;
         listModel.clear();
 
-        if (folder == null || !folder.exists() || !folder.isDirectory()) {
-            return;
-        }
-
         File[] children = controller.getChildren(folder);
 
         for (File child : children) {

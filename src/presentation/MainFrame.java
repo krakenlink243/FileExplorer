@@ -11,12 +11,10 @@ import java.awt.BorderLayout;
 import java.io.File;
 
 public class MainFrame extends JFrame {
-    private final FileExplorerController controller;
     private final FileTreePanel fileTreePanel;
     private final FileListPanel fileListPanel;
 
     public MainFrame(FileExplorerController controller) {
-        this.controller = controller;
         this.fileTreePanel = new FileTreePanel(controller);
         this.fileListPanel = new FileListPanel(controller);
 

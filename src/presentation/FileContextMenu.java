@@ -146,7 +146,9 @@ public class FileContextMenu extends JPopupMenu {
         textArea.setWrapStyleWord(true);
 
         try {
-            textArea.setText(controller.getQuickProperties(selectedFile));
+            textArea.setText(
+                    PropertyFormatter.format(controller.getPropertiesSummary(selectedFile))
+            );
         } catch (Exception exception) {
             showError(exception.getMessage());
             return;
@@ -167,8 +169,8 @@ public class FileContextMenu extends JPopupMenu {
 
         SwingWorker<String, Void> worker = new SwingWorker<>() {
             @Override
-            protected String doInBackground() throws Exception {
-                return controller.getProperties(selectedFile);
+            protected String doInBackground() {
+                return PropertyFormatter.format(controller.getProperties(selectedFile));
             }
 
             @Override

@@ -1,7 +1,6 @@
 package controller;
 
-import model.FileProperty;
-import model.FolderProperty;
+import model.ItemProperty;
 import repository.FileSystemRepository;
 import service.FileOperationService;
 import service.FilePropertyService;
@@ -44,20 +43,33 @@ public class FileExplorerController {
         return fileOperationService.rename(source, newName);
     }
 
-    public String getProperties(File file) {
+    public ItemProperty getProperties(File file) {
+        validateExists(file);
+
+        if (file.isDirectory()) {
+            return filePropertyService.getFolderProperty(file);
+        }
+
+        return filePropertyService.getFileProperty(file);
+    }
+
+    /**
+     * Same as {@link #getProperties(File)} but never walks a folder tree, so it
+     * returns fast enough to call on the event dispatch thread.
+     */
+    public ItemProperty getPropertiesSummary(File file) {
+        validateExists(file);
+
+        if (file.isDirectory()) {
+            return filePropertyService.getFolderSummary(file);
+        }
+
+        return filePropertyService.getFileProperty(file);
+    }
+
+    private void validateExists(File file) {
         if (file == null || !file.exists()) {
             throw new IllegalArgumentException("File or folder does not exist.");
         }
-
-        if (file.isDirectory()) {
-            FolderProperty folderProperty = filePropertyService.getFolderProperty(file);
-            return folderProperty.toDisplayString();
-        }
-
-        FileProperty fileProperty = filePropertyService.getFileProperty(file);
-        return fileProperty.toDisplayString();
-    }
-    public String getQuickProperties(File file) {
-        return filePropertyService.getQuickPropertyText(file);
     }
 }
