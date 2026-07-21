@@ -60,6 +60,16 @@ public class FileOperationService {
         return fileSystemRepository.rename(source, renamed);
     }
 
+    /**
+     * Opens the item with whatever application the operating system has
+     * registered for it.
+     */
+    public void open(FileItem item) throws IOException {
+        validateSource(item);
+
+        fileSystemRepository.open(item);
+    }
+
     private void copyFolder(FileItem sourceFolder, FileItem destinationFolder) throws IOException {
         fileSystemRepository.createFolder(destinationFolder);
 

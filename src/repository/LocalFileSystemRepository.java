@@ -4,6 +4,7 @@ import model.FileItem;
 import model.ItemTimes;
 import platform.RootProvider;
 
+import java.awt.Desktop;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -162,5 +163,15 @@ public class LocalFileSystemRepository implements FileSystemRepository {
     @Override
     public void delete(FileItem item) throws IOException {
         Files.deleteIfExists(toFile(item).toPath());
+    }
+
+    @Override
+    public void open(FileItem item) throws IOException {
+        if (!Desktop.isDesktopSupported()
+                || !Desktop.getDesktop().isSupported(Desktop.Action.OPEN)) {
+            throw new IOException("This system cannot open files for you.");
+        }
+
+        Desktop.getDesktop().open(toFile(item));
     }
 }

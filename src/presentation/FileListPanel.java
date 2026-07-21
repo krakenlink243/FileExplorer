@@ -5,9 +5,11 @@ import model.FileItem;
 
 import javax.swing.DefaultListModel;
 import javax.swing.JLabel;
+import javax.swing.JOptionPane;
 import javax.swing.JList;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
+import javax.swing.SwingUtilities;
 import java.awt.BorderLayout;
 import java.awt.Rectangle;
 import java.awt.event.MouseAdapter;
@@ -29,6 +31,48 @@ public class FileListPanel extends JPanel {
         setLayout(new BorderLayout());
         add(new JLabel(" Files and Folders"), BorderLayout.NORTH);
         add(new JScrollPane(fileList), BorderLayout.CENTER);
+
+        initDoubleClick();
+    }
+
+    /**
+     * Double-clicking follows what Explorer does: a folder is stepped into, a
+     * file is handed to the application the system uses for it.
+     */
+    private void initDoubleClick() {
+        fileList.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent event) {
+                if (event.getClickCount() != 2 || !SwingUtilities.isLeftMouseButton(event)) {
+                    return;
+                }
+
+                FileItem selectedItem = getSelectedItem();
+
+                if (selectedItem == null) {
+                    return;
+                }
+
+                if (selectedItem.isDirectory()) {
+                    displayFiles(selectedItem);
+                } else {
+                    openItem(selectedItem);
+                }
+            }
+        });
+    }
+
+    private void openItem(FileItem item) {
+        try {
+            controller.open(item);
+        } catch (Exception exception) {
+            JOptionPane.showMessageDialog(
+                    this,
+                    exception.getMessage(),
+                    "Error",
+                    JOptionPane.ERROR_MESSAGE
+            );
+        }
     }
 
     public void displayFiles(FileItem folder) {

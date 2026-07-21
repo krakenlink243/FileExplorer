@@ -46,4 +46,7 @@ public interface FileSystemRepository {
     boolean rename(FileItem source, FileItem renamed);
 
     void delete(FileItem item) throws IOException;
+
+    /** Hands the item to the operating system's default application. */
+    void open(FileItem item) throws IOException;
 }

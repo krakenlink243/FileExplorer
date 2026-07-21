@@ -47,6 +47,10 @@ public class FileExplorerController {
         fileOperationService.move(source, destinationFolder);
     }
 
+    public void open(FileItem item) throws IOException {
+        fileOperationService.open(item);
+    }
+
     public boolean rename(FileItem source, String newName) {
         return fileOperationService.rename(source, newName);
     }

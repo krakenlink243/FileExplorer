@@ -33,16 +33,20 @@ public class FileContextMenu extends JPopupMenu {
     }
 
     private void initMenuItems() {
+        JMenuItem openItem = new JMenuItem("Open");
         JMenuItem copyItem = new JMenuItem("Copy");
         JMenuItem moveItem = new JMenuItem("Move");
         JMenuItem renameItem = new JMenuItem("Rename");
         JMenuItem propertiesItem = new JMenuItem("Properties");
 
+        openItem.addActionListener(event -> openSelectedFile());
         copyItem.addActionListener(event -> copySelectedFile());
         moveItem.addActionListener(event -> moveSelectedFile());
         renameItem.addActionListener(event -> renameSelectedFile());
         propertiesItem.addActionListener(event -> showSelectedFileProperties());
 
+        add(openItem);
+        addSeparator();
         add(copyItem);
         add(moveItem);
         add(renameItem);
@@ -52,6 +56,21 @@ public class FileContextMenu extends JPopupMenu {
 
     private FileItem getSelectedItem() {
         return selectedItemSupplier.get();
+    }
+
+    private void openSelectedFile() {
+        FileItem selectedFile = getSelectedItem();
+
+        if (selectedFile == null) {
+            showMessage("Please select a file or folder.");
+            return;
+        }
+
+        try {
+            controller.open(selectedFile);
+        } catch (Exception exception) {
+            showError(exception.getMessage());
+        }
     }
 
     private void copySelectedFile() {
